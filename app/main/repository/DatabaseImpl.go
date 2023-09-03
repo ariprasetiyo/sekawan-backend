@@ -10,6 +10,7 @@ import (
 
 const (
 	queryGetMerchantIdByUserIdChatat string = "select merchant_id  from merchant_users_chatat where user_id_chatat = ?"
+	queryInsertToken                 string = "insert into auth_token values (user_id, token, created_at, expired_at returning token )"
 )
 
 func NewDatabase(db *gorm.DB, base *baseModel.PostgreSQLClientRepository) Database {
@@ -28,4 +29,13 @@ func (di databaseImpl) GetCount(ctx context.Context, userId string) string {
 		logrus.Errorln("error", err.Error)
 	}
 	return merchantId
+}
+
+func (di databaseImpl) SaveToken(ctx context.Context, userId string, token string, created_at string, expired_at string) string {
+	var getToken string
+	error := di.db.WithContext(ctx).Raw(queryInsertToken, userId, token, created_at, expired_at).Scan(getToken)
+	if error != nil {
+		logrus.Errorln("error", error.Error)
+	}
+	return getToken
 }

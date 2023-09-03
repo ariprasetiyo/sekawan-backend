@@ -1,0 +1,19 @@
+create table auth_token(
+    user_id varchar(100),
+    token varchar(200),
+    created_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP),
+    expired_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP)
+)
+
+create index auth_token_user_id on auth_token USING btree(user_id)  ;
+
+create table auth_users(
+    user_id varchar(100) primary key,
+    password varchar(200),
+    is_active bool, 
+    full_name varchar(100), 
+    email varchar(100),
+    created_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP),
+    expired_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP)
+)
+
