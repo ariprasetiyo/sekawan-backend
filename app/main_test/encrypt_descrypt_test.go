@@ -8,9 +8,10 @@ import (
 )
 
 func TestEncryptDescypt(t *testing.T) {
-	planText := "ari_prasetiyo"
-	chiperText := util.EncryptAES256(planText)
-	resultDescypted := util.DecryptAES256(chiperText)
+	key := "jb(HH}=#jA=%6QK7"
+	planText := "8ARSgYr1ofFRGJrxoAga"
+	chiperText := util.EncryptAES256(key, planText)
+	resultDescypted := util.DecryptAES256(key, chiperText)
 	assert.Equal(t, planText, resultDescypted)
 	println("planText", planText)
 	println("chiperText", chiperText)

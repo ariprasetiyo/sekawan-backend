@@ -1,6 +1,7 @@
 package handle_auth
 
 import (
+	"encoding/json"
 	"net/http"
 	"os"
 	"sekawan-backend/app/main/handler"
@@ -12,6 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	keyUserId string = "jb(HH}=#jA=%6QK7"
 )
 
 func NewAuthGenerateTokenHandler(db *repository.Database) handler.HandlerInterface {
@@ -47,15 +52,42 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 func doDeserialize() {
 }
 
+/*
+1. generateToken() :
+2. getExpiredToken() :
+3. JWT format : base64 ( body information , signature )
+3. JWT body information : uuid, expired time , user_id encrypted, created time
+4. JWT signature :  json JWT information with user_in in plantext
+4. JWT validation : signature client in userId plantext vs signature BE in userId plantext
+*/
 func (auth AuthGenerateToken) doProcess(c *gin.Context, userId string, token string, created_at string, expired_at string) {
 	auth.saveToken(c, userId, token, created_at, "123")
+
+	expiredToken := getExpiredToken()
+	id := generateId()
+	userIdEncrypted := util.EncryptAES256(keyUserId, userId)
+
+	jWTBodyUserIdEncrypted := JWTBody{userIdEncrypted, expiredToken, id}
+	jWTBodyUserId := JWTBody{userId, expiredToken, id}
+
+	jwtSignature := generateJWTSignature(jWTBodyUserId)
+	buildJWTToken(jWTBodyUserIdEncrypted, jwtSignature)
 }
 
-func generateToken() string {
-	uuid := uuid.New().String()
-	epochTime := string(time.Now().UnixMilli())
-	var token string = epochTime + "-" + uuid
-	return token
+func buildJWTToken(body JWTBody, signature string) {
+	var jwtToken JWTToken
+	jwtToken.Body = body
+	jwtToken.Siganture = signature
+}
+
+func generateJWTSignature(jwtBody JWTBody) string {
+	jwtBodyJson, err := json.Marshal(jwtBody)
+	util.IsErrorDoPrintWithMessage("error generate jwt json", err)
+	return util.HmacSha256InByte("", jwtBodyJson)
+}
+
+func generateId() string {
+	return uuid.New().String()
 }
 
 func getExpiredToken() int64 {
@@ -63,10 +95,6 @@ func getExpiredToken() int64 {
 	util.IsErrorDoPanicWithMessage("", error)
 	expiredInepochTime := time.Now().UnixMilli() + expiredInLong
 	return expiredInepochTime
-}
-
-func encryptedAES256() {
-
 }
 
 func (auth AuthGenerateToken) saveToken(c *gin.Context, userId string, token string, created_at string, expired_at string) {
