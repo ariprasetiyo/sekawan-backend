@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	handle_auth "sekawan-backend/app/main/handle_auth"
+	"sekawan-backend/app/main/auth"
 	handle_image "sekawan-backend/app/main/handle_image"
 	"sekawan-backend/app/main/handler"
 	repository "sekawan-backend/app/main/repository"
@@ -41,8 +41,8 @@ func main() {
 	initPosgresSQL := server.InitPostgreSQL()
 	database := repository.NewDatabase(initPosgresSQL.DB, initPosgresSQL)
 
-	authGenerateTokenHandler := handle_auth.NewAuthGenerateTokenHandler(&database)
-	authValidateTokenHandler := handle_auth.NewAuthValidateTokenHandler(&database)
+	authGenerateTokenHandler := auth.NewAuthGenerateTokenHandler(&database)
+	authValidateTokenHandler := auth.NewAuthValidateTokenHandler(&database)
 	ocrHandler := handle_image.NewOcrApiHandler(&database)
 
 	router.GET("/public/health", handler.HealthCheckHanlder)

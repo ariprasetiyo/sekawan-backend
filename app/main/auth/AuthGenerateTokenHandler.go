@@ -1,6 +1,7 @@
-package handle_auth
+package auth
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -15,9 +16,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	keyUserId string = "jb(HH}=#jA=%6QK7"
-)
+var secretKey = os.Getenv(util.HEADER_USER_AGENT)
+var expiredToken = os.Getenv(util.CONFIG_TOKEN_EXPIRED_IN_MINUTES)
 
 func NewAuthGenerateTokenHandler(db *repository.Database) handler.HandlerInterface {
 	return &AuthGenerateToken{databaseImpl: *db}
@@ -46,7 +46,7 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 		unauthorized(c)
 	}
 
-	auth.doProcess(c, "", "", "", "")
+	// auth.doProcess(c, "", "", "", "")
 }
 
 func doDeserialize() {
@@ -60,30 +60,33 @@ func doDeserialize() {
 4. JWT signature :  json JWT information with user_in in plantext
 4. JWT validation : signature client in userId plantext vs signature BE in userId plantext
 */
-func (auth AuthGenerateToken) doProcess(c *gin.Context, userId string, token string, created_at string, expired_at string) {
-	auth.saveToken(c, userId, token, created_at, "123")
+func (auth AuthGenerateToken) doProcess(c *gin.Context, userId string) {
+	//todo here
+	getJWTToken(userId)
+}
+
+func getJWTToken(userId string) string {
 
 	expiredToken := getExpiredToken()
 	id := generateId()
-	userIdEncrypted := util.EncryptAES256(keyUserId, userId)
+	jWTBody := JWTBody{userId, expiredToken, id, ADMIN_SUPER}
+	jwtSignature := generateJWTSignature(jWTBody)
+	jwtFormatInJson, _ := json.Marshal(buildJWTFormat(jWTBody, jwtSignature))
 
-	jWTBodyUserIdEncrypted := JWTBody{userIdEncrypted, expiredToken, id}
-	jWTBodyUserId := JWTBody{userId, expiredToken, id}
-
-	jwtSignature := generateJWTSignature(jWTBodyUserId)
-	buildJWTToken(jWTBodyUserIdEncrypted, jwtSignature)
+	return base64.StdEncoding.EncodeToString(jwtFormatInJson)
 }
 
-func buildJWTToken(body JWTBody, signature string) {
+func buildJWTFormat(body JWTBody, signature string) JWTToken {
 	var jwtToken JWTToken
 	jwtToken.Body = body
 	jwtToken.Siganture = signature
+	return jwtToken
 }
 
 func generateJWTSignature(jwtBody JWTBody) string {
 	jwtBodyJson, err := json.Marshal(jwtBody)
 	util.IsErrorDoPrintWithMessage("error generate jwt json", err)
-	return util.HmacSha256InByte("", jwtBodyJson)
+	return util.HmacSha256InByte(secretKey, jwtBodyJson)
 }
 
 func generateId() string {
@@ -91,8 +94,8 @@ func generateId() string {
 }
 
 func getExpiredToken() int64 {
-	expiredInLong, error := strconv.ParseInt(os.Getenv(util.CONFIG_TOKEN_EXPIRED_IN_MINUTES), 10, 0)
-	util.IsErrorDoPanicWithMessage("", error)
+	expiredInLong, error := strconv.ParseInt(expiredToken, 10, 0)
+	util.IsErrorDoPanicWithMessage("error get expired jwt token", error)
 	expiredInepochTime := time.Now().UnixMilli() + expiredInLong
 	return expiredInepochTime
 }

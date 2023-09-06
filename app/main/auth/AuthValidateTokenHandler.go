@@ -1,4 +1,4 @@
-package handle_auth
+package auth
 
 import (
 	"net/http"

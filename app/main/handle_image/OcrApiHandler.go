@@ -1,4 +1,4 @@
-package handle_auth
+package handle_image
 
 import (
 	"bytes"

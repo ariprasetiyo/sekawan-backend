@@ -9,10 +9,14 @@ create index auth_token_user_id on auth_token USING btree(user_id)  ;
 
 create table auth_users(
     user_id varchar(100) primary key,
-    password varchar(200),
-    is_active bool, 
-    full_name varchar(100), 
+    password_hash varchar(200),
+    full_name varchar(100),
+    phone_no varchar(200),
+    phone_no_hash varchar(200),
     email varchar(100),
+    email_hash varchar(100),
+    is_active bool, 
+    acl varchar(100),
     created_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP),
     expired_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP)
 )

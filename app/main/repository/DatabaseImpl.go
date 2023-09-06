@@ -39,3 +39,12 @@ func (di databaseImpl) SaveToken(ctx context.Context, userId string, token strin
 	}
 	return getToken
 }
+
+func (di databaseImpl) GetUser(ctx context.Context, userId string, password string) string {
+	var merchantId string
+	err := di.db.WithContext(ctx).Raw(queryGetMerchantIdByUserIdChatat, userId).Scan(&merchantId)
+	if err != nil {
+		logrus.Errorln("error", err.Error)
+	}
+	return merchantId
+}
