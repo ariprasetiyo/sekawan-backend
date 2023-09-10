@@ -1,4 +1,4 @@
-package auth
+package handlerAuth
 
 import (
 	"sekawan-backend/app/main/handler"
@@ -9,7 +9,9 @@ type AuthRequest struct {
 	body AuthBodyRequest `json:"body"`
 }
 
+/*
+cred : json authModel in encryption AES 256
+*/
 type AuthBodyRequest struct {
-	userId   string `json:"userId"`
-	password string `json:"password"`
+	cred string `json:"cred"`
 }

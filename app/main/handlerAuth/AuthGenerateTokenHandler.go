@@ -1,4 +1,4 @@
-package auth
+package handlerAuth
 
 import (
 	"encoding/base64"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -30,41 +31,55 @@ type AuthGenerateToken struct {
 func (auth AuthGenerateToken) Execute(c *gin.Context) {
 	clientId := c.GetHeader(util.HEADER_CLIENT_ID)
 	signature := c.GetHeader(util.HEADER_SIGNATURE)
-	requestTime := c.GetHeader(util.HEADER_REQUEST_TIME)
-	authorization := c.GetHeader(util.HEADER_AUTHORIZATION)
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
 
+	var request AuthRequest
+	var response AuthResponse
+	defaultResponseId := uuid.New().String()
+	defaultType := handler.TYPE_GENERATE_TOKEN
+
 	if util.IsEmptyString(clientId) && util.IsEmptyString(signature) &&
-		util.IsEmptyString(requestTime) && util.IsEmptyString(authorization) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) {
-		unauthorized(c)
-		logrus.Info("invalid request", clientId, " signature:", signature, " requestTime:", requestTime, "authorization:", authorization, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+		responseCode := handler.BAD_REQUEST
+		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+		logrus.Info("invalid request", clientId, " signature:", signature, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+	} else if err := c.ShouldBindBodyWith(&request, binding.JSON); err != nil {
+		responseCode := handler.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
+		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+	} else if !isValidAuth(auth) {
+		responseCode := handler.UNAUTHORIZED
+		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 	}
 
-	if !isValidAuth(auth) {
-		unauthorized(c)
-	}
-
-	// auth.doProcess(c, "", "", "", "")
+	c.JSON(200, response)
 }
 
 func doDeserialize() {
 }
 
 /*
-1. generateToken() :
-2. getExpiredToken() :
-3. JWT format : base64 ( body information , signature )
-3. JWT body information : uuid, expired time , user_id encrypted, created time
-4. JWT signature :  json JWT information with user_in in plantext
-4. JWT validation : signature client in userId plantext vs signature BE in userId plantext
+1. JWT format : base64 ( body information , signature )
+2. JWT validation : signature client in userId plantext vs signature BE in userId plantext
 */
 func (auth AuthGenerateToken) doProcess(c *gin.Context, userId string) {
 	//todo here
 	getJWTToken(userId)
 }
 
+/*
+jwtBody :
+
+  - expiredToken : expired token
+  - id : uuid
+  - userId : user id from db
+  - acl : access control list
+
+JWT signature : sha256 json JWT information ( jwtBody )
+*/
 func getJWTToken(userId string) string {
 
 	expiredToken := getExpiredToken()

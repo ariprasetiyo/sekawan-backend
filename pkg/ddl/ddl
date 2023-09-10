@@ -15,8 +15,10 @@ create table auth_users(
     phone_no_hash varchar(200),
     email varchar(100),
     email_hash varchar(100),
-    is_active bool, 
     acl varchar(100),
+    is_active bool default false, 
+    is_phone_number bool default false,
+    is_email bool default false,
     created_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP),
     expired_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP)
 )

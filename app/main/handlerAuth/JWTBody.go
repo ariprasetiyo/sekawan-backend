@@ -1,4 +1,4 @@
-package auth
+package handlerAuth
 
 type JWTBody struct {
 	UserId    string   `json:"userId"`

@@ -1,4 +1,4 @@
-package auth
+package handlerAuth
 
 type JWTToken struct {
 	Body      JWTBody `json:"body"`

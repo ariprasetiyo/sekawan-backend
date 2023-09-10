@@ -1,4 +1,4 @@
-package auth
+package handlerAuth
 
 type ACL_ENUM int
 

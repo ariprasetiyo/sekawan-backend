@@ -1,4 +1,4 @@
-package handle_image
+package handlerOcrImage
 
 import (
 	"bytes"
