@@ -6,12 +6,19 @@ import (
 
 type AuthRequest struct {
 	handler.Request
-	body AuthBodyRequest `json:"body"`
+	Body AuthBodyRequest `json:"body"`
 }
 
 /*
-cred : json authModel in encryption AES 256
+cred : json in encryption AES 256
 */
 type AuthBodyRequest struct {
-	cred string `json:"cred"`
+	Cred string `json:"cred"`
+}
+
+type AuthCredRequest struct {
+	FullName string `json:"fullName"`
+	PhoneNo  string `json:"phoneNo"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }

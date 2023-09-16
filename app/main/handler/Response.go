@@ -1,8 +1,10 @@
 package handler
 
+import "sekawan-backend/app/main/enum"
+
 type Response struct {
 	ResponseId      string         `json:"responseId"`
-	Type            REQ_TYPE_ENUM  `json:"type"`
-	ResponseCode    RESP_CODE_ENUM `json:"responseCode"`
+	Type            enum.REQ_TYPE  `json:"type"`
+	ResponseCode    enum.RESP_CODE `json:"responseCode"`
 	ResponseMessage string         `json:"responseMessage"`
 }

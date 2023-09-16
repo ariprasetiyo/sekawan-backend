@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"sekawan-backend/app/main/enum"
 	"sekawan-backend/app/main/handler"
+	handlerAuth_model "sekawan-backend/app/main/handlerAuth/model"
 	"sekawan-backend/app/main/repository"
 	"sekawan-backend/app/main/util"
 	"strconv"
@@ -37,37 +39,76 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 	var request AuthRequest
 	var response AuthResponse
 	defaultResponseId := uuid.New().String()
-	defaultType := handler.TYPE_GENERATE_TOKEN
+	defaultType := enum.TYPE_GENERATE_TOKEN
 
 	if util.IsEmptyString(clientId) && util.IsEmptyString(signature) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) {
-		responseCode := handler.BAD_REQUEST
+
+		responseCode := enum.BAD_REQUEST
 		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 		logrus.Info("invalid request", clientId, " signature:", signature, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+
 	} else if err := c.ShouldBindBodyWith(&request, binding.JSON); err != nil {
-		responseCode := handler.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
+
+		responseCode := enum.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
 		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
-	} else if !isValidAuth(auth) {
-		responseCode := handler.UNAUTHORIZED
+
+	} else if util.IsEmptyString(request.RequestId) &&
+		util.IsEmptyString(request.Type) &&
+		util.IsEmptyObject(request.Body) &&
+		util.IsEmptyString(request.Body.Cred) {
+
+		responseCode := enum.BAD_REQUEST
 		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+		logrus.Info("invalid request", clientId, " request.Type:", request.Type, " request.Body:", request.Body, " request.Body.Cred:", request.Body.Cred)
+	} else {
+
+		encryptionKey := os.Getenv(util.CONFIG_APP_ENCRIPTION_KEY)
+		var authCredRequest AuthCredRequest
+		resultDecrypted := util.DecryptAES256(encryptionKey, request.Body.Cred)
+		err := json.Unmarshal([]byte(resultDecrypted), authCredRequest)
+		util.IsErrorDoPrintWithMessage("error unmarshal auth request body", err)
+
+		emailMd5 := auth.getMd5(authCredRequest.Email)
+		phoneNoMd5 := auth.getMd5(authCredRequest.PhoneNo)
+		passwordMd5 := auth.getPasswordMd5(authCredRequest.PhoneNo, authCredRequest.Password)
+		users := auth.getUsers(c, phoneNoMd5, emailMd5, passwordMd5)
+		if users == nil {
+			responseCode := enum.UNAUTHORIZED
+			reponseHeader := handler.Response{ResponseId: request.RequestId, Type: enum.STRING_TO_REQ_TYPE[request.Type], ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+			response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+		} else {
+			token := getJWTToken(users.UserId)
+			auth.buildResponse(c, users.UserId, request, token)
+		}
 	}
 
 	c.JSON(200, response)
 }
 
-func doDeserialize() {
+func (auth AuthGenerateToken) getMd5(value string) string {
+	salt := os.Getenv(util.CONFIG_APP_SALT_MD5)
+	phoneNoMd5 := util.GenerateMD5(salt, value)
+	return phoneNoMd5
 }
 
-/*
-1. JWT format : base64 ( body information , signature )
-2. JWT validation : signature client in userId plantext vs signature BE in userId plantext
-*/
-func (auth AuthGenerateToken) doProcess(c *gin.Context, userId string) {
-	//todo here
-	getJWTToken(userId)
+func (auth AuthGenerateToken) getPasswordMd5(phoneNo string, password string) string {
+	salt := os.Getenv(util.CONFIG_APP_SALT_MD5)
+	apiKey := os.Getenv(util.CONFIG_APP_API_KEY_PASSWORD)
+	passwordMd5 := util.GeneratePasswordHash(salt, apiKey, phoneNo, password)
+	return passwordMd5
+}
+
+func (auth AuthGenerateToken) buildResponse(c *gin.Context, userId string, request AuthRequest, token string) AuthResponse {
+
+	responseCode := enum.SUCCESS
+	reponseHeader := handler.Response{ResponseId: request.RequestId, Type: enum.STRING_TO_REQ_TYPE[request.Type], ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+	response := AuthResponse{reponseHeader, AuthBodyResponse{UserId: userId, Token: token}}
+
+	return response
 }
 
 /*
@@ -79,6 +120,9 @@ jwtBody :
   - acl : access control list
 
 JWT signature : sha256 json JWT information ( jwtBody )
+
+1. JWT format : base64 ( body information , signature )
+2. JWT validation : signature client in userId plantext vs signature BE in userId plantext
 */
 func getJWTToken(userId string) string {
 
@@ -124,10 +168,11 @@ func unauthorized(c *gin.Context) {
 	c.AbortWithStatus(http.StatusUnauthorized)
 }
 
-func isValidAuth(cerberus AuthGenerateToken) bool {
-	if 1 == 1 {
-		return true
+func (auth AuthGenerateToken) getUsers(c *gin.Context, phoneNumbeMd5 string, emailMd5 string, passwordMd5 string) *handlerAuth_model.AuthModel {
+	if !util.IsEmptyString(phoneNumbeMd5) {
+		return auth.databaseImpl.GetUserIdByPhoneNo(c, phoneNumbeMd5, passwordMd5)
+	} else if !util.IsEmptyString(emailMd5) {
+		return auth.databaseImpl.GetUserIdByEmail(c, emailMd5, passwordMd5)
 	}
-	logrus.Infoln("invalid auth client id")
-	return false
+	return nil
 }

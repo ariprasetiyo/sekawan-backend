@@ -1,0 +1,65 @@
+package enum
+
+type REQ_TYPE int32
+type RESP_CODE int32
+
+const (
+	// enum request and response type
+	TYPE_GENERATE_TOKEN REQ_TYPE = 200
+	TYPE_REQUESTS_OCR   REQ_TYPE = 201
+
+	// generic response code
+	SUCCESS       RESP_CODE = 200
+	FAILED        RESP_CODE = 301
+	SETTLED       RESP_CODE = 302
+	PAID          RESP_CODE = 303
+	UNKNOWN_ERROR RESP_CODE = 304
+	BAD_REQUEST   RESP_CODE = 305
+	UNAUTHORIZED  RESP_CODE = 306
+
+	// response code auth
+	AUTH_ERROR_DESERIALIZE_JSON_REQUEST RESP_CODE = 505
+	AUTH_ERROR_INVALID_CLIENT_ID        RESP_CODE = 506
+)
+
+var (
+	STRING_TO_REQ_TYPE = map[string]REQ_TYPE{
+		"TYPE_GENERATE_TOKEN": TYPE_GENERATE_TOKEN,
+		"TYPE_REQUESTS_OCR":   TYPE_REQUESTS_OCR,
+	}
+
+	REQ_TYPE_TO_STRING = map[REQ_TYPE]string{
+		TYPE_GENERATE_TOKEN: "TYPE_GENERATE_TOKEN",
+		TYPE_REQUESTS_OCR:   "TYPE_REQUESTS_OCR",
+	}
+
+	STRING_TO_RESPONSE_CODE = map[string]RESP_CODE{
+		"SUCCESS":       SUCCESS,
+		"FAILED":        FAILED,
+		"SETTLED":       SETTLED,
+		"PAID":          PAID,
+		"UNKNOWN_ERROR": UNKNOWN_ERROR,
+		"BAD_REQUEST":   BAD_REQUEST,
+		"UNAUTHORIZED":  UNAUTHORIZED,
+	}
+
+	RESPONSE_CODE_TO_STRING = map[RESP_CODE]string{
+		SUCCESS:       "SUCCESS",
+		FAILED:        "FAILED",
+		SETTLED:       "SETTLED",
+		PAID:          "PAID",
+		UNKNOWN_ERROR: "UNKNOWN_ERROR",
+		BAD_REQUEST:   "BAD_REQUEST",
+		UNAUTHORIZED:  "UNAUTHORIZED",
+	}
+)
+
+func (reqType REQ_TYPE) String() *string {
+	c, _ := REQ_TYPE_TO_STRING[reqType]
+	return &c
+}
+
+func (respCode RESP_CODE) String() string {
+	c, _ := RESPONSE_CODE_TO_STRING[respCode]
+	return c
+}

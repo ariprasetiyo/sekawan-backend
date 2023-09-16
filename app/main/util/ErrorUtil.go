@@ -10,6 +10,10 @@ func IsEmptyString(value string) bool {
 	return len(strings.TrimSpace(value)) == 0
 }
 
+func IsEmptyObject(objt any) bool {
+	return objt == nil
+}
+
 func IsErrorDoPanic(e error) {
 	if e != nil {
 		logrus.Panicln(e)

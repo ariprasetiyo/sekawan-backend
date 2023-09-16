@@ -6,9 +6,10 @@ import (
 
 type AuthResponse struct {
 	handler.Response
-	body AuthBodyResponse `json:"body"`
+	Body AuthBodyResponse `json:"body"`
 }
 
 type AuthBodyResponse struct {
-	token string `json:"token"`
+	Token  string `json:"token"`
+	UserId string `json:"userId"`
 }
