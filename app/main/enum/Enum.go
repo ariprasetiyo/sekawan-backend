@@ -54,9 +54,9 @@ var (
 	}
 )
 
-func (reqType REQ_TYPE) String() *string {
+func (reqType REQ_TYPE) String() string {
 	c, _ := REQ_TYPE_TO_STRING[reqType]
-	return &c
+	return c
 }
 
 func (respCode RESP_CODE) String() string {

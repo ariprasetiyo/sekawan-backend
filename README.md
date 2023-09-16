@@ -41,3 +41,9 @@ go get -u -d gocv.io/x/gocv
 # shortcut command
 1. mac : command + f12 = call implementation code
 2. mac : option + f12 = call reference code
+
+# rum spesific unit test
+go test app/main_test/curl_generator_test.go -v
+
+# curl
+curl -X POST localhost:8083/public/token -H 'Client-Id: xxxxx' "Signature: " -d ""

@@ -30,8 +30,15 @@ type AuthGenerateToken struct {
 	databaseImpl repository.Database
 }
 
+/*
+*
+clientID :
+signature :
+*/
 func (auth AuthGenerateToken) Execute(c *gin.Context) {
 	clientId := c.GetHeader(util.HEADER_CLIENT_ID)
+	// clientIdServerSide := os.Getenv(util.CONFIG_APP_CLIENT_ID)
+	// clientApiKeyServerSide := os.Getenv(util.CONFIG_APP_CLIENT_API_KEY_PASSWORD)
 	signature := c.GetHeader(util.HEADER_SIGNATURE)
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
@@ -39,20 +46,20 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 	var request AuthRequest
 	var response AuthResponse
 	defaultResponseId := uuid.New().String()
-	defaultType := enum.TYPE_GENERATE_TOKEN
+	defaultRequestType := enum.TYPE_GENERATE_TOKEN
 
 	if util.IsEmptyString(clientId) && util.IsEmptyString(signature) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) {
 
 		responseCode := enum.BAD_REQUEST
-		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 		logrus.Info("invalid request", clientId, " signature:", signature, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
 
 	} else if err := c.ShouldBindBodyWith(&request, binding.JSON); err != nil {
 
 		responseCode := enum.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
-		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 
 	} else if util.IsEmptyString(request.RequestId) &&
@@ -61,7 +68,7 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 		util.IsEmptyString(request.Body.Cred) {
 
 		responseCode := enum.BAD_REQUEST
-		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 		logrus.Info("invalid request", clientId, " request.Type:", request.Type, " request.Body:", request.Body, " request.Body.Cred:", request.Body.Cred)
 	} else {
@@ -74,7 +81,7 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 
 		emailMd5 := auth.getMd5(authCredRequest.Email)
 		phoneNoMd5 := auth.getMd5(authCredRequest.PhoneNo)
-		passwordMd5 := auth.getPasswordMd5(authCredRequest.PhoneNo, authCredRequest.Password)
+		passwordMd5 := auth.getMd5(authCredRequest.Password)
 		users := auth.getUsers(c, phoneNoMd5, emailMd5, passwordMd5)
 		if users == nil {
 			responseCode := enum.UNAUTHORIZED
@@ -93,13 +100,6 @@ func (auth AuthGenerateToken) getMd5(value string) string {
 	salt := os.Getenv(util.CONFIG_APP_SALT_MD5)
 	phoneNoMd5 := util.GenerateMD5(salt, value)
 	return phoneNoMd5
-}
-
-func (auth AuthGenerateToken) getPasswordMd5(phoneNo string, password string) string {
-	salt := os.Getenv(util.CONFIG_APP_SALT_MD5)
-	apiKey := os.Getenv(util.CONFIG_APP_API_KEY_PASSWORD)
-	passwordMd5 := util.GeneratePasswordHash(salt, apiKey, phoneNo, password)
-	return passwordMd5
 }
 
 func (auth AuthGenerateToken) buildResponse(c *gin.Context, userId string, request AuthRequest, token string) AuthResponse {
