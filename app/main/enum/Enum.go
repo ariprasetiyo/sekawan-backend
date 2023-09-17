@@ -1,5 +1,11 @@
 package enum
 
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
 type REQ_TYPE int32
 type RESP_CODE int32
 
@@ -62,4 +68,32 @@ func (reqType REQ_TYPE) String() string {
 func (respCode RESP_CODE) String() string {
 	c, _ := RESPONSE_CODE_TO_STRING[respCode]
 	return c
+}
+
+func (s REQ_TYPE) MarshalJSON() ([]byte, error) {
+	// It is assumed Suit implements fmt.Stringer.
+	return json.Marshal(s.String())
+}
+
+// UnmarshalJSON must be a *pointer receiver* to ensure that the indirect from the
+// parsed value can be set on the unmarshaling object. This means that the
+// ParseSuit function must return a *value* and not a pointer.
+func (s *REQ_TYPE) UnmarshalJSON(data []byte) (err error) {
+	var suits string
+	if err := json.Unmarshal(data, &suits); err != nil {
+		return err
+	}
+	if *s, err = ParseSuit(suits); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ParseSuit(s string) (REQ_TYPE, error) {
+	s = strings.TrimSpace(strings.ToUpper(s))
+	value, ok := STRING_TO_REQ_TYPE[s]
+	if !ok {
+		return REQ_TYPE(0), fmt.Errorf("%q is not a valid card suit", s)
+	}
+	return REQ_TYPE(value), nil
 }

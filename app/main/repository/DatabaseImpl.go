@@ -35,21 +35,21 @@ func (di databaseImpl) GetCount(ctx context.Context, userId string) string {
 }
 
 // todo here
-func (di databaseImpl) GetUserIdByPhoneNo(ctx context.Context, phoneNumbeMd5 string, passwordMd5 string) *handlerAuth_model.AuthModel {
-	var modelAuth *handlerAuth_model.AuthModel
-	err := di.db.WithContext(ctx).Raw(queryGetUsersByPhoneNumber, phoneNumbeMd5, passwordMd5).Scan(modelAuth)
-	if err != nil {
-		logrus.Errorln("error", err.Error)
+func (di databaseImpl) GetUserIdByPhoneNo(ctx context.Context, phoneNumbeMd5 string, passwordMd5 string) handlerAuth_model.AuthModel {
+	var modelAuth handlerAuth_model.AuthModel
+	result := di.db.WithContext(ctx).Raw(queryGetUsersByPhoneNumber, phoneNumbeMd5, passwordMd5).Scan(&modelAuth)
+	if result.Error != nil {
+		logrus.Errorln("error "+phoneNumbeMd5+" password "+passwordMd5, result.Error)
 	}
 	return modelAuth
 }
 
 // todo here
-func (di databaseImpl) GetUserIdByEmail(ctx context.Context, phoneNumbeMd5 string, passwordMd5 string) *handlerAuth_model.AuthModel {
-	var modelAuth *handlerAuth_model.AuthModel
-	err := di.db.WithContext(ctx).Raw(queryGetUsersByEmail, phoneNumbeMd5, passwordMd5).Scan(modelAuth)
-	if err != nil {
-		logrus.Errorln("error", err.Error)
+func (di databaseImpl) GetUserIdByEmail(ctx context.Context, phoneNumbeMd5 string, passwordMd5 string) handlerAuth_model.AuthModel {
+	var modelAuth handlerAuth_model.AuthModel
+	result := di.db.WithContext(ctx).Raw(queryGetUsersByEmail, phoneNumbeMd5, passwordMd5).Scan(&modelAuth)
+	if result.Error != nil {
+		logrus.Errorln("error", result.Error)
 	}
 	return modelAuth
 }

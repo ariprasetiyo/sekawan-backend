@@ -19,10 +19,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var secretKey = os.Getenv(util.HEADER_USER_AGENT)
-var expiredToken = os.Getenv(util.CONFIG_TOKEN_EXPIRED_IN_MINUTES)
+var secretKey string
+var expiredToken string
 
 func NewAuthGenerateTokenHandler(db *repository.Database) handler.HandlerInterface {
+	secretKey = os.Getenv(util.HEADER_USER_AGENT)
+	expiredToken = os.Getenv(util.CONFIG_APP_TOKEN_EXPIRED_IN_MINUTES)
 	return &AuthGenerateToken{databaseImpl: *db}
 }
 
@@ -31,44 +33,42 @@ type AuthGenerateToken struct {
 }
 
 /*
-*
 clientID :
 signature :
 */
 func (auth AuthGenerateToken) Execute(c *gin.Context) {
+
 	clientId := c.GetHeader(util.HEADER_CLIENT_ID)
-	// clientIdServerSide := os.Getenv(util.CONFIG_APP_CLIENT_ID)
-	// clientApiKeyServerSide := os.Getenv(util.CONFIG_APP_CLIENT_API_KEY_PASSWORD)
 	signature := c.GetHeader(util.HEADER_SIGNATURE)
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
 
 	var request AuthRequest
 	var response AuthResponse
-	defaultResponseId := uuid.New().String()
+
 	defaultRequestType := enum.TYPE_GENERATE_TOKEN
 
 	if util.IsEmptyString(clientId) && util.IsEmptyString(signature) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) {
 
 		responseCode := enum.BAD_REQUEST
-		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 		logrus.Info("invalid request", clientId, " signature:", signature, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
 
 	} else if err := c.ShouldBindBodyWith(&request, binding.JSON); err != nil {
 
 		responseCode := enum.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
-		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 
 	} else if util.IsEmptyString(request.RequestId) &&
-		util.IsEmptyString(request.Type) &&
+		util.IsEmptyObject(request.Type) &&
 		util.IsEmptyObject(request.Body) &&
 		util.IsEmptyString(request.Body.Cred) {
 
 		responseCode := enum.BAD_REQUEST
-		reponseHeader := handler.Response{ResponseId: defaultResponseId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 		logrus.Info("invalid request", clientId, " request.Type:", request.Type, " request.Body:", request.Body, " request.Body.Cred:", request.Body.Cred)
 	} else {
@@ -76,20 +76,20 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 		encryptionKey := os.Getenv(util.CONFIG_APP_ENCRIPTION_KEY)
 		var authCredRequest AuthCredRequest
 		resultDecrypted := util.DecryptAES256(encryptionKey, request.Body.Cred)
-		err := json.Unmarshal([]byte(resultDecrypted), authCredRequest)
+		err := json.Unmarshal([]byte(resultDecrypted), &authCredRequest)
 		util.IsErrorDoPrintWithMessage("error unmarshal auth request body", err)
 
 		emailMd5 := auth.getMd5(authCredRequest.Email)
 		phoneNoMd5 := auth.getMd5(authCredRequest.PhoneNo)
 		passwordMd5 := auth.getMd5(authCredRequest.Password)
 		users := auth.getUsers(c, phoneNoMd5, emailMd5, passwordMd5)
-		if users == nil {
+		if util.IsEmptyString(users.UserId) {
 			responseCode := enum.UNAUTHORIZED
-			reponseHeader := handler.Response{ResponseId: request.RequestId, Type: enum.STRING_TO_REQ_TYPE[request.Type], ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+			reponseHeader := handler.Response{ResponseId: request.RequestId, Type: request.Type, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 			response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 		} else {
 			token := getJWTToken(users.UserId)
-			auth.buildResponse(c, users.UserId, request, token)
+			response = auth.buildResponse(c, users.UserId, request, token)
 		}
 	}
 
@@ -105,7 +105,7 @@ func (auth AuthGenerateToken) getMd5(value string) string {
 func (auth AuthGenerateToken) buildResponse(c *gin.Context, userId string, request AuthRequest, token string) AuthResponse {
 
 	responseCode := enum.SUCCESS
-	reponseHeader := handler.Response{ResponseId: request.RequestId, Type: enum.STRING_TO_REQ_TYPE[request.Type], ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+	reponseHeader := handler.Response{ResponseId: request.RequestId, Type: request.Type, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 	response := AuthResponse{reponseHeader, AuthBodyResponse{UserId: userId, Token: token}}
 
 	return response
@@ -168,11 +168,11 @@ func unauthorized(c *gin.Context) {
 	c.AbortWithStatus(http.StatusUnauthorized)
 }
 
-func (auth AuthGenerateToken) getUsers(c *gin.Context, phoneNumbeMd5 string, emailMd5 string, passwordMd5 string) *handlerAuth_model.AuthModel {
+func (auth AuthGenerateToken) getUsers(c *gin.Context, phoneNumbeMd5 string, emailMd5 string, passwordMd5 string) handlerAuth_model.AuthModel {
 	if !util.IsEmptyString(phoneNumbeMd5) {
 		return auth.databaseImpl.GetUserIdByPhoneNo(c, phoneNumbeMd5, passwordMd5)
 	} else if !util.IsEmptyString(emailMd5) {
 		return auth.databaseImpl.GetUserIdByEmail(c, emailMd5, passwordMd5)
 	}
-	return nil
+	return handlerAuth_model.AuthModel{}
 }

@@ -29,7 +29,7 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	// router.Use(server.RequestResponseLogger())
+	router.Use(server.RequestResponseLogger())
 	router.Use(otelgin.Middleware(server.APP_NAME))
 
 	corsConfig := cors.DefaultConfig()
