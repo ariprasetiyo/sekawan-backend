@@ -1,4 +1,4 @@
-package handlerOcrImage
+package handlerOCR
 
 import (
 	"bytes"
@@ -25,20 +25,19 @@ func (auth ocrApiHandler) Execute(c *gin.Context) {
 
 	clientId := c.GetHeader(util.HEADER_CLIENT_ID)
 	signature := c.GetHeader(util.HEADER_SIGNATURE)
-	requestTime := c.GetHeader(util.HEADER_REQUEST_TIME)
-	authorization := c.GetHeader(util.HEADER_AUTHORIZATION)
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
+	authorization := c.GetHeader(util.HEADER_AUTHORIZATION)
 	jsonRequestBody := getBodyRequest(c, clientId)
 
 	if util.IsEmptyString(clientId) && util.IsEmptyString(signature) &&
-		util.IsEmptyString(requestTime) && util.IsEmptyString(authorization) &&
+		util.IsEmptyString(authorization) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) &&
 		util.IsEmptyString(jsonRequestBody) {
 		unauthorized(c)
-		logrus.Info("invalid request", clientId, " signature:", signature, " requestTime:", requestTime, "authorization:", authorization, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, " request body:", jsonRequestBody)
+		logrus.Infoln("invalid request", clientId, " signature:", signature, "authorization:", authorization, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, " request body:", jsonRequestBody)
 	}
-	logrus.Info("call ocrApiHandler")
+	logrus.Infoln("call ocrApiHandler")
 }
 
 func getBodyRequest(c *gin.Context, clientId string) string {

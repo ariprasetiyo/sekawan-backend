@@ -3,6 +3,7 @@ package handlerAuth
 import (
 	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"sekawan-backend/app/main/enum"
@@ -14,17 +15,21 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
 var secretKey string
 var expiredToken string
+var secretKeySHA256 string
 
 func NewAuthGenerateTokenHandler(db *repository.Database) handler.HandlerInterface {
+
 	secretKey = os.Getenv(util.HEADER_USER_AGENT)
 	expiredToken = os.Getenv(util.CONFIG_APP_TOKEN_EXPIRED_IN_MINUTES)
+	clientIdServerSide := os.Getenv(util.CONFIG_APP_CLIENT_ID)
+	clientApiKeyServerSide := os.Getenv(util.CONFIG_APP_CLIENT_API_KEY_PASSWORD)
+	secretKeySHA256 = clientIdServerSide + "::" + clientApiKeyServerSide
 	return &AuthGenerateToken{databaseImpl: *db}
 }
 
@@ -39,28 +44,44 @@ signature :
 func (auth AuthGenerateToken) Execute(c *gin.Context) {
 
 	clientId := c.GetHeader(util.HEADER_CLIENT_ID)
-	signature := c.GetHeader(util.HEADER_SIGNATURE)
+	signatureInReq := c.GetHeader(util.HEADER_SIGNATURE)
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
 
+	requestBody := auth.getRequestBody(c)
 	var request AuthRequest
 	var response AuthResponse
-
 	defaultRequestType := enum.TYPE_GENERATE_TOKEN
+	err := json.Unmarshal(requestBody, &request)
 
-	if util.IsEmptyString(clientId) && util.IsEmptyString(signature) &&
+	if util.IsEmptyObject(requestBody) {
+
+		responseCode := enum.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
+		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+		logrus.Infoln("empty request body", clientId, signatureInReq)
+
+	} else if err != nil {
+
+		responseCode := enum.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
+		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+		util.IsErrorDoPrintWithMessage("error unmarshal auth request body", err)
+
+	} else if util.IsEmptyString(signatureInReq) || isValidSignature(signatureInReq, requestBody) {
+
+		responseCode := enum.UNAUTHORIZED
+		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+		logrus.Infoln("invalid siganture", clientId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+
+	} else if util.IsEmptyString(clientId) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) {
 
 		responseCode := enum.BAD_REQUEST
 		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
-		logrus.Info("invalid request", clientId, " signature:", signature, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
-
-	} else if err := c.ShouldBindBodyWith(&request, binding.JSON); err != nil {
-
-		responseCode := enum.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
-		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
-		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+		logrus.Infoln("invalid request", clientId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
 
 	} else if util.IsEmptyString(request.RequestId) &&
 		util.IsEmptyObject(request.Type) &&
@@ -70,7 +91,8 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 		responseCode := enum.BAD_REQUEST
 		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
-		logrus.Info("invalid request", clientId, " request.Type:", request.Type, " request.Body:", request.Body, " request.Body.Cred:", request.Body.Cred)
+		logrus.Infoln("invalid request", clientId, " request.Type:", request.Type, " request.Body:", request.Body, " request.Body.Cred:", request.Body.Cred)
+
 	} else {
 
 		encryptionKey := os.Getenv(util.CONFIG_APP_ENCRIPTION_KEY)
@@ -94,6 +116,19 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 	}
 
 	c.JSON(200, response)
+}
+
+func (auth AuthGenerateToken) getRequestBody(c *gin.Context) []byte {
+	requestBody, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		logrus.Errorln("error read request body", c.Request.Body, err.Error())
+	}
+	return requestBody
+}
+
+func isValidSignature(signatureInReq string, requestBody []byte) bool {
+	signatureInServer := util.HmacSha256InByte(secretKeySHA256, requestBody)
+	return signatureInReq == signatureInServer
 }
 
 func (auth AuthGenerateToken) getMd5(value string) string {

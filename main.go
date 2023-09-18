@@ -4,7 +4,7 @@ import (
 	"context"
 	"sekawan-backend/app/main/handler"
 	"sekawan-backend/app/main/handlerAuth"
-	"sekawan-backend/app/main/handlerOcrImage"
+	"sekawan-backend/app/main/handlerOCR"
 	repository "sekawan-backend/app/main/repository"
 	"sekawan-backend/app/main/server"
 
@@ -43,7 +43,7 @@ func main() {
 
 	authGenerateTokenHandler := handlerAuth.NewAuthGenerateTokenHandler(&database)
 	authValidateTokenHandler := handlerAuth.NewAuthValidateTokenHandler(&database)
-	ocrHandler := handlerOcrImage.NewOcrApiHandler(&database)
+	ocrHandler := handlerOCR.NewOcrApiHandler(&database)
 
 	router.GET("/public/health", handler.HealthCheckHanlder)
 	router.POST("/public/token", authGenerateTokenHandler.Execute)
