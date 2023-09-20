@@ -26,6 +26,7 @@ const (
 	// response code auth
 	AUTH_ERROR_DESERIALIZE_JSON_REQUEST RESP_CODE = 505
 	AUTH_ERROR_INVALID_CLIENT_ID        RESP_CODE = 506
+	AUTH_ERROR_INVALID_MSG_ID           RESP_CODE = 507
 )
 
 var (
@@ -40,23 +41,29 @@ var (
 	}
 
 	STRING_TO_RESPONSE_CODE = map[string]RESP_CODE{
-		"SUCCESS":       SUCCESS,
-		"FAILED":        FAILED,
-		"SETTLED":       SETTLED,
-		"PAID":          PAID,
-		"UNKNOWN_ERROR": UNKNOWN_ERROR,
-		"BAD_REQUEST":   BAD_REQUEST,
-		"UNAUTHORIZED":  UNAUTHORIZED,
+		"SUCCESS":                             SUCCESS,
+		"FAILED":                              FAILED,
+		"SETTLED":                             SETTLED,
+		"PAID":                                PAID,
+		"UNKNOWN_ERROR":                       UNKNOWN_ERROR,
+		"BAD_REQUEST":                         BAD_REQUEST,
+		"UNAUTHORIZED":                        UNAUTHORIZED,
+		"AUTH_ERROR_DESERIALIZE_JSON_REQUEST": AUTH_ERROR_DESERIALIZE_JSON_REQUEST,
+		"AUTH_ERROR_INVALID_CLIENT_ID":        AUTH_ERROR_INVALID_CLIENT_ID,
+		"AUTH_ERROR_INVALID_MSG_ID":           AUTH_ERROR_INVALID_MSG_ID,
 	}
 
 	RESPONSE_CODE_TO_STRING = map[RESP_CODE]string{
-		SUCCESS:       "SUCCESS",
-		FAILED:        "FAILED",
-		SETTLED:       "SETTLED",
-		PAID:          "PAID",
-		UNKNOWN_ERROR: "UNKNOWN_ERROR",
-		BAD_REQUEST:   "BAD_REQUEST",
-		UNAUTHORIZED:  "UNAUTHORIZED",
+		SUCCESS:                             "SUCCESS",
+		FAILED:                              "FAILED",
+		SETTLED:                             "SETTLED",
+		PAID:                                "PAID",
+		UNKNOWN_ERROR:                       "UNKNOWN_ERROR",
+		BAD_REQUEST:                         "BAD_REQUEST",
+		UNAUTHORIZED:                        "UNAUTHORIZED",
+		AUTH_ERROR_DESERIALIZE_JSON_REQUEST: "AUTH_ERROR_DESERIALIZE_JSON_REQUEST",
+		AUTH_ERROR_INVALID_CLIENT_ID:        "AUTH_ERROR_INVALID_CLIENT_ID",
+		AUTH_ERROR_INVALID_MSG_ID:           "AUTH_ERROR_INVALID_MSG_ID",
 	}
 )
 

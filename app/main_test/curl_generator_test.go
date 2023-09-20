@@ -34,6 +34,7 @@ func TestCurlRequestGenerateToken(t *testing.T) {
 	clientApiKeyServerSide := os.Getenv(util.CONFIG_APP_CLIENT_API_KEY_PASSWORD)
 	secretKeySHA256 := clientIdServerSide + "::" + clientApiKeyServerSide
 	encryptionKey := os.Getenv(util.CONFIG_APP_ENCRIPTION_KEY)
+
 	phoneNo := "+6285600070411"
 	password := "cobacoba1-="
 	authCredRequest := handlerAuth.AuthCredRequest{PhoneNo: phoneNo, Password: password}
@@ -42,8 +43,9 @@ func TestCurlRequestGenerateToken(t *testing.T) {
 	encryptionCredential := util.EncryptAES256(encryptionKey, string(authCredRequestInJson))
 	requestId := uuid.New().String()
 	requestTime := time.Now().UnixMilli()
+
 	var bodyRequest = "{\"requestId\":\"" + requestId + "\",\"type\":\"" + enum.TYPE_GENERATE_TOKEN.String() + "\",\"requestTime\":" + strconv.FormatInt(requestTime, 10) + ",\"body\":{\"cred\":\"" + encryptionCredential + "\"}}"
 	signature := util.HmacSha256(secretKeySHA256, bodyRequest)
-	curl := "curl -X POST localhost:8083/public/token -H 'Client-Id: " + clientIdServerSide + "' -H 'Signature: " + signature + "' -d '" + bodyRequest + "'"
+	curl := "curl -X POST localhost:8083/public/token -H 'Msg-Id: " + requestId + "' -H 'Client-Id: " + clientIdServerSide + "' -H 'Signature: " + signature + "' -d '" + bodyRequest + "'"
 	println(curl)
 }

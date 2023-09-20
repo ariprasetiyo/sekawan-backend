@@ -13,6 +13,7 @@ const (
 	GET  = "GET"
 
 	HEADER_USER_AGENT    = "User-Agent"
+	HEADER_MSG_ID        = "Msg-Id"
 	HEADER_CLIENT_ID     = "Client-Id"
 	HEADER_CLIENT_USER   = "Client-User"
 	HEADER_AUTHORIZATION = "Authorization"

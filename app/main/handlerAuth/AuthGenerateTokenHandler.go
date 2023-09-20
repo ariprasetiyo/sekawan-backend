@@ -43,7 +43,7 @@ signature :
 */
 func (auth AuthGenerateToken) Execute(c *gin.Context) {
 
-	clientId := c.GetHeader(util.HEADER_CLIENT_ID)
+	msgId := c.GetHeader(util.HEADER_MSG_ID)
 	signatureInReq := c.GetHeader(util.HEADER_SIGNATURE)
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
@@ -54,12 +54,18 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 	defaultRequestType := enum.TYPE_GENERATE_TOKEN
 	err := json.Unmarshal(requestBody, &request)
 
-	if util.IsEmptyObject(requestBody) {
+	if util.IsEmptyObject(msgId) || util.IsEmptyString(msgId) {
+
+		responseCode := enum.AUTH_ERROR_INVALID_MSG_ID
+		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
+		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
+		logrus.Infoln("invalid request msg id", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+	} else if util.IsEmptyObject(requestBody) {
 
 		responseCode := enum.AUTH_ERROR_DESERIALIZE_JSON_REQUEST
 		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
-		logrus.Infoln("empty request body", clientId, signatureInReq)
+		logrus.Infoln("empty request body", msgId, signatureInReq)
 
 	} else if err != nil {
 
@@ -68,20 +74,20 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 		util.IsErrorDoPrintWithMessage("error unmarshal auth request body", err)
 
-	} else if util.IsEmptyString(signatureInReq) || isValidSignature(signatureInReq, requestBody) {
+	} else if util.IsEmptyString(signatureInReq) || !isValidSignature(signatureInReq, requestBody) {
 
 		responseCode := enum.UNAUTHORIZED
 		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
-		logrus.Infoln("invalid siganture", clientId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+		logrus.Infoln("invalid siganture", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
 
-	} else if util.IsEmptyString(clientId) &&
+	} else if util.IsEmptyString(msgId) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) {
 
 		responseCode := enum.BAD_REQUEST
 		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
-		logrus.Infoln("invalid request", clientId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+		logrus.Infoln("invalid request", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
 
 	} else if util.IsEmptyString(request.RequestId) &&
 		util.IsEmptyObject(request.Type) &&
@@ -91,7 +97,7 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 		responseCode := enum.BAD_REQUEST
 		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
-		logrus.Infoln("invalid request", clientId, " request.Type:", request.Type, " request.Body:", request.Body, " request.Body.Cred:", request.Body.Cred)
+		logrus.Infoln("invalid request", msgId, " request.Type:", request.Type, " request.Body:", request.Body, " request.Body.Cred:", request.Body.Cred)
 
 	} else {
 
