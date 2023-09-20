@@ -49,6 +49,7 @@ func main() {
 	router.POST("/public/token", authGenerateTokenHandler.Execute)
 	authorizedRouter := router.Group("/", authValidateTokenHandler.Execute)
 	authorizedRouter.POST("/api/v1/ocr", ocrHandler.Execute)
+	authorizedRouter.GET("/api/v1/test/get", ocrHandler.Execute)
 
 	router.Run(":" + server.HTTP_SERVER_PORT)
 }

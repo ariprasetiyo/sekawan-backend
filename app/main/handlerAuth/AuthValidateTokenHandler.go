@@ -30,59 +30,68 @@ func (auth AuthValidateToken) Execute(c *gin.Context) {
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
 	authorization := c.GetHeader(util.HEADER_AUTHORIZATION)
-	jsonRequestBody := getBodyRequest(c, msgId)
+
+	var jsonRequestBody string
+	if httpMethod == util.POST {
+		jsonRequestBody = getBodyRequest(c, msgId)
+	} else if httpMethod == util.GET {
+		jsonRequestBody = sourceUrl
+	}
 
 	if util.IsEmptyObject(msgId) || util.IsEmptyString(msgId) {
-		logrus.Infoln("invalid request msg id", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+		logrus.Infoln("invalid request msgid:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
 		unauthorized(c)
 		return
-	} else if util.IsEmptyString(signatureInReq) || !isValidSignature(signatureInReq, jsonRequestBody) {
-		logrus.Infoln("invalid siganture", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+	} else if util.IsEmptyString(signatureInReq) || !isValidSignature(signatureInReq, []byte(jsonRequestBody)) {
+		logrus.Infoln("invalid siganture msgId:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "jsonRequestBody:", jsonRequestBody)
 		unauthorized(c)
 		return
 	} else if util.IsEmptyString(msgId) && util.IsEmptyString(authorization) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) &&
 		util.IsEmptyObject(jsonRequestBody) {
-		logrus.Info("invalid request", msgId, "authorization:", authorization, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, " request body:", jsonRequestBody)
+		logrus.Info("invalid request msgid:", msgId, "authorization:", authorization, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, " request body:", jsonRequestBody)
 		unauthorized(c)
 		return
 	}
 
-	jwtToken := decodeJWTToken(authorization)
-	if !isValidToken(jwtToken) {
-		logrus.Infoln("invalid JWT", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+	jwtToken := decodeJWTToken(msgId, authorization)
+	nowInMs := time.Now().UnixMilli()
+	if !isValidToken(msgId, jwtToken) {
+		logrus.Infoln("invalid JWT msgid:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "jwt:", authorization)
 		unauthorized(c)
 		return
-	} else if jwtToken.Body.ExpiredTs < time.Now().UnixMilli() {
-		logrus.Infoln("expired token authorization", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+	} else if jwtToken.Body.ExpiredTs < nowInMs {
+		logrus.Infoln("expired token authorization msgid:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "expiredAt:", jwtToken.Body.ExpiredTs, "now:", nowInMs)
 		unauthorized(c)
 		return
 	}
 
 }
 
-func getBodyRequest(c *gin.Context, msgId string) []byte {
+func getBodyRequest(c *gin.Context, msgId string) string {
 	jsonData, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		logrus.Errorln("error read request body", msgId, err.Error())
 	}
 	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(jsonData))
-	return jsonData
+	return string(jsonData)
 }
 
-func decodeJWTToken(jwtToken string) JWTToken {
+func decodeJWTToken(msgId string, jwtToken string) JWTToken {
+
 	decodeResult, err := base64.StdEncoding.DecodeString(jwtToken)
-	util.IsErrorDoPrintWithMessage("error decoding jwt token", err)
+	util.IsErrorDoPrintWithMessage("error decoding jwt token msgId: "+msgId+" jwtToken:"+jwtToken+", decodeResult:"+string(decodeResult), err)
 
 	var jwtTokenUnmarshal JWTToken
-	error := json.Unmarshal([]byte(decodeResult), &jwtTokenUnmarshal)
-	util.IsErrorDoPrintWithMessage("error decoding jwt token", error)
+	error := json.Unmarshal(decodeResult, &jwtTokenUnmarshal)
+	util.IsErrorDoPrintWithMessage("error Unmarshal jwt token msgId: "+msgId+" jwtToken:"+jwtToken+", decodeResult:"+string(decodeResult), error)
 	return jwtTokenUnmarshal
 }
 
-func isValidToken(jwtToken JWTToken) bool {
+func isValidToken(msgId string, jwtToken JWTToken) bool {
 	jwtSignatureServer := generateJWTSignature(jwtToken.Body)
 	if jwtSignatureServer != jwtToken.Siganture {
+		logrus.Infoln("isValidToken JWT msgid:", msgId, " jwtSignatureServer:", jwtSignatureServer, " jwtToken.Signature:", jwtToken.Siganture, "jwtToken:", jwtToken)
 		return false
 	}
 	return true
