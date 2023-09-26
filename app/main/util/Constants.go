@@ -22,6 +22,10 @@ const (
 	HEADER_SOURCE_URL    = "Source-Url"
 	HEADER_METHOD        = "Method"
 	HEADER_REQUEST_ID    = "Request-id"
+	HEADER_USER_ID       = "User-Id"
+	HEADER_ACL           = "ACL"
+
+	QUERY_STRING_NAME = "name"
 
 	QUERY_STRING_TYPE       = "type"
 	QUERY_STRING_REQUEST_ID = "request_id"

@@ -20,7 +20,7 @@ func RequestResponseLogger() gin.HandlerFunc {
 		buf, _ := ioutil.ReadAll(c.Request.Body)
 		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
 		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf)) //We have to create a new Buffer, because rdr1 will be read.
-		logrus.Infoln("request: http method", c.Request.Method, ", client ip", c.ClientIP(), ", user-agent", c.Request.UserAgent(), c.Request.URL, ", body=", (rdr1))
+		logrus.Infoln("request = http method:", c.Request.Method, ", client ip:", c.ClientIP(), ", user-agent:", c.Request.UserAgent(), ", url:", c.Request.URL, ", header msg-id:", c.Request.Header[util.HEADER_MSG_ID], ", body:", (rdr1))
 		c.Request.Body = rdr2
 
 		blw := &bodyLogWriter{body: bytes.NewBufferString(util.EMPTY_STRING), ResponseWriter: c.Writer}
@@ -29,6 +29,6 @@ func RequestResponseLogger() gin.HandlerFunc {
 
 		statusCode := c.Writer.Status()
 		duration := time.Now().UnixMilli() - startTime
-		logrus.Infoln("Response: http status", statusCode, ", duration:", duration, "ms ", c.Request.URL, " , body=", blw.body.String())
+		logrus.Infoln("Response = http status:", statusCode, ", duration:", duration, "ms", ", body:", blw.body.String())
 	}
 }

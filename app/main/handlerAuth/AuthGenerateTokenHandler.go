@@ -168,8 +168,7 @@ JWT signature : sha256 json JWT information ( jwtBody )
 func getJWTToken(userId string) string {
 
 	expiredToken := getExpiredToken()
-	id := generateId()
-	jWTBody := JWTBody{userId, expiredToken, id, ADMIN_SUPER}
+	jWTBody := JWTBody{userId, expiredToken, ADMIN_SUPER}
 	jwtSignature := generateJWTSignature(jWTBody)
 	jwtFormatInJson, _ := json.Marshal(buildJWTFormat(jWTBody, jwtSignature))
 
@@ -194,9 +193,10 @@ func generateId() string {
 }
 
 func getExpiredToken() int64 {
-	expiredInLong, error := strconv.ParseInt(expiredToken, 10, 0)
+	expiredInMinutes, error := strconv.ParseInt(expiredToken, 10, 0)
+	expiredInMs := expiredInMinutes * 60000
 	util.IsErrorDoPanicWithMessage("error get expired jwt token", error)
-	expiredInepochTime := time.Now().UnixMilli() + expiredInLong
+	expiredInepochTime := time.Now().UnixMilli() + expiredInMs
 	return expiredInepochTime
 }
 

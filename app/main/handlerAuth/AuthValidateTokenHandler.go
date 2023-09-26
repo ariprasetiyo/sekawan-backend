@@ -54,7 +54,7 @@ func (auth AuthValidateToken) Execute(c *gin.Context) {
 		return
 	}
 
-	jwtToken := decodeJWTToken(msgId, authorization)
+	jwtToken := DecodeJWTToken(msgId, authorization)
 	nowInMs := time.Now().UnixMilli()
 	if !isValidToken(msgId, jwtToken) {
 		logrus.Infoln("invalid JWT msgid:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "jwt:", authorization)
@@ -66,6 +66,8 @@ func (auth AuthValidateToken) Execute(c *gin.Context) {
 		return
 	}
 
+	c.Request.Header.Add(util.HEADER_USER_ID, jwtToken.Body.UserId)
+	c.Request.Header.Add(util.HEADER_ACL, *jwtToken.Body.Acl.String())
 }
 
 func getBodyRequest(c *gin.Context, msgId string) string {
@@ -77,7 +79,7 @@ func getBodyRequest(c *gin.Context, msgId string) string {
 	return string(jsonData)
 }
 
-func decodeJWTToken(msgId string, jwtToken string) JWTToken {
+func DecodeJWTToken(msgId string, jwtToken string) JWTToken {
 
 	decodeResult, err := base64.StdEncoding.DecodeString(jwtToken)
 	util.IsErrorDoPrintWithMessage("error decoding jwt token msgId: "+msgId+" jwtToken:"+jwtToken+", decodeResult:"+string(decodeResult), err)
@@ -101,14 +103,3 @@ func unauthorizeda(c *gin.Context) {
 	c.Header("WWW-Authenticate", "Unauthorized")
 	c.AbortWithStatus(http.StatusUnauthorized)
 }
-
-// func getJWTToken(userId string) string {
-
-// 	expiredToken := getExpiredToken()
-// 	id := generateId()
-// 	jWTBody := JWTBody{userId, expiredToken, id, ADMIN_SUPER}
-// 	jwtSignature := generateJWTSignature(jWTBody)
-// 	jwtFormatInJson, _ := json.Marshal(buildJWTFormat(jWTBody, jwtSignature))
-
-// 	return base64.StdEncoding.EncodeToString(jwtFormatInJson)
-// }
