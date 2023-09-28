@@ -62,8 +62,29 @@ func TestCurlRequestGenerateHTTPGet(t *testing.T) {
 	util.IsErrorDoPrint(err)
 	requestId := uuid.New().String()
 	url := "/api/v1/test/get?name=test&type=" + enum.TYPE_REQUEST_HTTP_GET_TEST.String()
-	jwtToken := "eyJib2R5Ijp7InVzZXJJZCI6IjhBUlNnWXIxb2ZGUkdKcnhvQWdhIiwiZXhwaXJlZFRzIjoxNjk1ODI5NjExNTM2LCJhY2wiOjB9LCJzaWduYXR1cmUiOiI1MzcyOWE4ZDdlMmEyZjRiYTlmZGQwZWIzMzQ0MmYzYTI2ZWJiNTQyOGU3YTM4MGZjNGE3MDdhNzk0ZDc4ZGI2In0="
+	jwtToken := "eyJib2R5Ijp7InVzZXJJZCI6IjhBUlNnWXIxb2ZGUkdKcnhvQWdhIiwiZXhwaXJlZFRzIjoxNjk1OTEzMzk0NDA0LCJhY2wiOjB9LCJzaWduYXR1cmUiOiIzMTIyNjM5MDdmZWY2YmJmNWU3M2UyMTE4Y2M0NTQ2ZmFkZDZkZGVlMjJiMGE1YmRkZGYyNTg0ZWFkM2JlZDQxIn0="
 	signature := util.HmacSha256(secretKeySHA256, url)
 	curl := "curl -X GET 'localhost:8083" + url + "' -H 'Msg-Id: " + requestId + "' -H 'Client-Id: " + clientIdServerSide + "' -H 'Signature: " + signature + "' -H 'Authorization: " + jwtToken + "'"
+	println(curl)
+}
+
+func TestCurlRequestGenerateHTTPPost(t *testing.T) {
+	godotenv.Load()
+	err := godotenv.Load(filepath.Join("../../", ".env.example"))
+	util.IsErrorDoPrint(err)
+
+	clientIdServerSide := os.Getenv(util.CONFIG_APP_CLIENT_ID)
+	clientApiKeyServerSide := os.Getenv(util.CONFIG_APP_CLIENT_API_KEY_PASSWORD)
+	secretKeySHA256 := clientIdServerSide + "::" + clientApiKeyServerSide
+
+	util.IsErrorDoPrint(err)
+	requestId := uuid.New().String()
+	requestTime := time.Now().UnixMilli()
+	name := "ari prasetiyo"
+	url := "/api/v1/test/post"
+	var bodyRequest = "{\"requestId\":\"" + requestId + "\",\"type\":\"" + enum.TYPE_REQUEST_HTTP_POST_TEST.String() + "\",\"requestTime\":" + strconv.FormatInt(requestTime, 10) + ",\"body\":{\"name\":\"" + name + "\"}}"
+	jwtToken := "eyJib2R5Ijp7InVzZXJJZCI6IjhBUlNnWXIxb2ZGUkdKcnhvQWdhIiwiZXhwaXJlZFRzIjoxNjk1OTEzMzk0NDA0LCJhY2wiOjB9LCJzaWduYXR1cmUiOiIzMTIyNjM5MDdmZWY2YmJmNWU3M2UyMTE4Y2M0NTQ2ZmFkZDZkZGVlMjJiMGE1YmRkZGYyNTg0ZWFkM2JlZDQxIn0="
+	signature := util.HmacSha256(secretKeySHA256, bodyRequest)
+	curl := "curl -X POST 'localhost:8083" + url + "' -H 'Content-Type: application/json' -H 'Msg-Id: " + requestId + "' -H 'Client-Id: " + clientIdServerSide + "' -H 'Signature: " + signature + "' -H 'Authorization: " + jwtToken + "' -d '" + bodyRequest + "' "
 	println(curl)
 }

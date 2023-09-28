@@ -46,6 +46,7 @@ go get -u -d gocv.io/x/gocv
 go test app/main_test/curl_generator_test.go -v
 go test -run TestCurlRequestGenerateToken -v
 go test -run TestCurlRequestGenerateHTTPGet -v
+go test -run TestCurlRequestGenerateHTTPPost -v
 
 # curl
 curl -X POST localhost:8083/public/token -H 'Client-Id: xxxxx' "Signature: " -d ""
