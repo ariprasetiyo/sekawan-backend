@@ -22,7 +22,6 @@ type postTestHandler struct {
 
 func (postTest postTestHandler) Execute(c *gin.Context) {
 
-	authorization := c.GetHeader(util.HEADER_AUTHORIZATION)
 	msgId := c.GetHeader(util.HEADER_MSG_ID)
 	userId := c.GetHeader(util.HEADER_USER_ID)
 	acl := c.GetHeader(util.HEADER_ACL)
@@ -31,8 +30,8 @@ func (postTest postTestHandler) Execute(c *gin.Context) {
 	var response handlerTest.PostTestResponse
 	if util.IsEmptyObject(bodyRequest) {
 		response = postTest.buildResponseFailed(msgId, enum.BAD_REQUEST, "body is empty")
-	} else if util.IsEmptyObject(bodyRequest.Type) {
-		response = postTest.buildResponseFailed(msgId, enum.BAD_REQUEST, "type is empty")
+	} else if util.IsEmptyObject(bodyRequest.Type) || bodyRequest.Type != enum.TYPE_REQUEST_HTTP_POST_TEST {
+		response = postTest.buildResponseFailed(msgId, enum.BAD_REQUEST, "type is not valid")
 	} else if util.IsEmptyString(bodyRequest.Body.Name) {
 		response = postTest.buildResponseFailed(msgId, enum.BAD_REQUEST, "body name is empty")
 	} else if util.IsEmptyString(userId) {
@@ -40,16 +39,15 @@ func (postTest postTestHandler) Execute(c *gin.Context) {
 	} else if util.IsEmptyString(acl) {
 		response = postTest.buildResponseFailed(msgId, enum.BAD_REQUEST, "acl is empty")
 	} else {
-		decodeResult := postTest.decodeJwtToken(msgId, authorization)
-		response = postTest.buildResponse(msgId, bodyRequest, userId, acl, decodeResult)
+		response = postTest.buildResponse(msgId, bodyRequest, userId, acl)
 	}
 
 	c.JSON(200, response)
 }
 
-func (postTest postTestHandler) buildResponse(msgId string, bodyRequest handlerTest.PostTestRequest, userId string, acl string, jwtToken handlerAuth.JWTToken) handlerTest.PostTestResponse {
+func (postTest postTestHandler) buildResponse(msgId string, bodyRequest handlerTest.PostTestRequest, userId string, acl string) handlerTest.PostTestResponse {
 	respHeader := handler.Response{ResponseId: msgId, Type: bodyRequest.Type, ResponseCode: enum.SUCCESS, ResponseMessage: enum.SUCCESS.String()}
-	respBody := handlerTest.PostTestBodyResponse{JwtDecoding: &jwtToken, Name: bodyRequest.Body.Name, UserId: userId, Acl: acl}
+	respBody := handlerTest.PostTestBodyResponse{Name: bodyRequest.Body.Name, UserId: userId, Acl: acl}
 	resp := handlerTest.PostTestResponse{Response: respHeader, Body: &respBody}
 	return resp
 }

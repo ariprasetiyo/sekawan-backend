@@ -25,8 +25,7 @@ const (
 	HEADER_USER_ID       = "User-Id"
 	HEADER_ACL           = "ACL"
 
-	QUERY_STRING_NAME = "name"
-
+	QUERY_STRING_NAME       = "name"
 	QUERY_STRING_TYPE       = "type"
 	QUERY_STRING_REQUEST_ID = "request_id"
 

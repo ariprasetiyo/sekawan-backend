@@ -61,7 +61,15 @@ func (auth AuthValidateToken) Execute(c *gin.Context) {
 		unauthorized(c)
 		return
 	} else if jwtToken.Body.ExpiredTs < nowInMs {
-		logrus.Infoln("expired token authorization msgid:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "expiredAt:", jwtToken.Body.ExpiredTs, "now:", nowInMs)
+		logrus.Infoln("expired token authorization msgid:", msgId, "httpMethod:", httpMethod, "sourceUrl:", sourceUrl, "expiredAt:", jwtToken.Body.ExpiredTs, "now:", nowInMs)
+		unauthorized(c)
+		return
+	} else if util.IsEmptyString(jwtToken.Body.UserId) {
+		logrus.Infoln("userId is empty msgid:", msgId, "httpMethod:", httpMethod, "sourceUrl:", sourceUrl, "jwtToken:", jwtToken)
+		unauthorized(c)
+		return
+	} else if util.IsEmptyString(*jwtToken.Body.Acl.String()) {
+		logrus.Infoln("acl is empty msgid:", msgId, "httpMethod:", httpMethod, "sourceUrl:", sourceUrl, "jwtToken:", jwtToken)
 		unauthorized(c)
 		return
 	}
