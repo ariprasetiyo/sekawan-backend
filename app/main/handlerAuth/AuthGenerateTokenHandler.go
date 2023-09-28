@@ -19,17 +19,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var secretKey string
-var expiredToken string
-var secretKeySHA256 string
+var (
+	secretKey           string
+	expiredToken        string
+	apiClientKeyPattern string
+)
 
 func NewAuthGenerateTokenHandler(db *repository.Database) handler.HandlerInterface {
 
 	secretKey = os.Getenv(util.HEADER_USER_AGENT)
 	expiredToken = os.Getenv(util.CONFIG_APP_TOKEN_EXPIRED_IN_MINUTES)
-	clientIdServerSide := os.Getenv(util.CONFIG_APP_CLIENT_ID)
-	clientApiKeyServerSide := os.Getenv(util.CONFIG_APP_CLIENT_API_KEY_PASSWORD)
-	secretKeySHA256 = clientIdServerSide + "::" + clientApiKeyServerSide
+	apiClientKeyPattern = os.Getenv(util.CONFIG_APP_API_CLIENT_KEY_PATTERN)
 	return &AuthGenerateToken{databaseImpl: *db}
 }
 
@@ -44,6 +44,7 @@ signature :
 func (auth AuthGenerateToken) Execute(c *gin.Context) {
 
 	msgId := c.GetHeader(util.HEADER_MSG_ID)
+	clientId := c.GetHeader(util.HEADER_CLIENT_ID)
 	signatureInReq := c.GetHeader(util.HEADER_SIGNATURE)
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
@@ -74,12 +75,12 @@ func (auth AuthGenerateToken) Execute(c *gin.Context) {
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
 		util.IsErrorDoPrintWithMessage("error unmarshal auth request body", err)
 
-	} else if util.IsEmptyString(signatureInReq) || !isValidSignature(signatureInReq, requestBody) {
+	} else if util.IsEmptyString(signatureInReq) || !auth.isValidSignature(c, msgId, clientId, signatureInReq, requestBody) {
 
 		responseCode := enum.UNAUTHORIZED
 		reponseHeader := handler.Response{ResponseId: request.RequestId, Type: defaultRequestType, ResponseCode: responseCode, ResponseMessage: responseCode.String()}
 		response = AuthResponse{reponseHeader, AuthBodyResponse{}}
-		logrus.Infoln("invalid siganture", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+		logrus.Infoln("invalid siganture", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "clientId", clientId)
 
 	} else if util.IsEmptyString(msgId) &&
 		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) {
@@ -132,8 +133,10 @@ func (auth AuthGenerateToken) getRequestBody(c *gin.Context) []byte {
 	return requestBody
 }
 
-func isValidSignature(signatureInReq string, requestBody []byte) bool {
-	signatureInServer := util.HmacSha256InByte(secretKeySHA256, requestBody)
+func (auth AuthGenerateToken) isValidSignature(c *gin.Context, msgId string, clientId string, signatureInReq string, requestBody []byte) bool {
+	appClientKey := auth.databaseImpl.GetAppClientKey(c, msgId, clientId)
+	secretKeySHA256Server := clientId + apiClientKeyPattern + appClientKey
+	signatureInServer := util.HmacSha256InByte(secretKeySHA256Server, requestBody)
 	return signatureInReq == signatureInServer
 }
 

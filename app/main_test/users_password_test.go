@@ -40,17 +40,42 @@ func TestGenerateUserAndPassword(t *testing.T) {
 	println(generateSQLUserAuth(userId, passwordMd5, true, fullName, email, emailHash, phoneNo, phoneNoMd5, acl))
 }
 
+func TestGenerateClientIdAndClientKey(t *testing.T) {
+	godotenv.Load()
+	err := godotenv.Load(filepath.Join("../../", ".env.example"))
+	util.IsErrorDoPrint(err)
+
+	clientId := "ari_aprasetiyo_client_id_1234"
+	clientKey := generateClientKey(100)
+	result := generateSQLAppClientKey(clientId, clientKey, true)
+	println(result)
+}
+
 func generateSQLUserAuth(userId string, passwordMd5 string, isActive bool, fullname string, email string, emailHash string, phoneNo string, phoneNoHash string, acl handlerAuth.ACL_ENUM) string {
 	return "insert into auth_users (user_id, password_hash, is_active, is_phone_number, is_email,  full_name, email, email_hash, phone_no, phone_no_hash, acl ) values ('" + userId + "','" + passwordMd5 + "'," + strconv.FormatBool(isActive) + ", true, true,'" + fullname + "','" + email + "','" + emailHash + "','" + phoneNo + "','" + phoneNoHash + "','" + *acl.String() + "')"
 }
 
+func generateSQLAppClientKey(clientId string, clientKey string, isActive bool) string {
+	return "insert into auth_api_client (client_id, client_key, is_active) values ('" + clientId + "','" + clientKey + "'," + strconv.FormatBool(isActive) + ")"
+}
+
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+const letterSpecialCharBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-+=$#!"
 
 func generateUserId(n int) string {
 	rand.Seed(time.Now().UnixNano())
 	b := make([]byte, n)
 	for i := range b {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
+func generateClientKey(n int) string {
+	rand.Seed(time.Now().UnixNano())
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterSpecialCharBytes[rand.Intn(len(letterSpecialCharBytes))]
 	}
 	return string(b)
 }

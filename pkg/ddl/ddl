@@ -23,3 +23,11 @@ create table auth_users(
     expired_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP)
 )
 
+create table auth_api_client(
+    client_id varchar(100) primary key,
+    client_key text,
+    is_active bool default false,
+    created_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP),
+    updated_at timestamp with time zone default timezone('asia/jakarta'::text, CURRENT_TIMESTAMP)
+)
+create index auth_api_client_client_id_idx on auth_api_client USING btree(client_id);

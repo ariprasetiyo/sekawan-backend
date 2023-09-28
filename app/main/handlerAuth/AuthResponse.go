@@ -10,6 +10,6 @@ type AuthResponse struct {
 }
 
 type AuthBodyResponse struct {
-	Token  string `json:"token"`
-	UserId string `json:"userId"`
+	Token  string `json:"token,omitempty"`
+	UserId string `json:"userId,omitempty"`
 }

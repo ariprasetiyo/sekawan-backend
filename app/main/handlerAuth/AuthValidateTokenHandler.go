@@ -26,6 +26,7 @@ type AuthValidateToken struct {
 func (auth AuthValidateToken) Execute(c *gin.Context) {
 
 	msgId := c.GetHeader(util.HEADER_MSG_ID)
+	clientId := c.GetHeader(util.HEADER_CLIENT_ID)
 	signatureInReq := c.GetHeader(util.HEADER_SIGNATURE)
 	httpMethod := c.Request.Method
 	sourceUrl := c.Request.URL.String()
@@ -42,7 +43,7 @@ func (auth AuthValidateToken) Execute(c *gin.Context) {
 		logrus.Infoln("invalid request msgid:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
 		unauthorized(c)
 		return
-	} else if util.IsEmptyString(signatureInReq) || !isValidSignature(signatureInReq, []byte(jsonRequestBody)) {
+	} else if util.IsEmptyString(signatureInReq) || !auth.isValidSignature(clientId, authorization, signatureInReq, []byte(jsonRequestBody)) {
 		logrus.Infoln("invalid siganture msgId:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "jsonRequestBody:", jsonRequestBody)
 		unauthorized(c)
 		return
@@ -110,4 +111,10 @@ func isValidToken(msgId string, jwtToken JWTToken) bool {
 func unauthorizeda(c *gin.Context) {
 	c.Header("WWW-Authenticate", "Unauthorized")
 	c.AbortWithStatus(http.StatusUnauthorized)
+}
+
+func (auth AuthValidateToken) isValidSignature(clientId string, token string, signatureInReq string, requestBody []byte) bool {
+	secretKeySHA256 := clientId + apiClientKeyPattern + token
+	signatureInServer := util.HmacSha256InByte(secretKeySHA256, requestBody)
+	return signatureInReq == signatureInServer
 }

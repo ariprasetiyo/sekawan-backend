@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	queryGetAppClientKey             string = "select client_key from auth_api_client where client_id =? and is_active = true"
 	queryGetMerchantIdByUserIdChatat string = "select merchant_id  from merchant_users_chatat where user_id_chatat = ?"
 	queryGetUsersByPhoneNumber       string = "select user_id, full_name, phone_no, email, acl from auth_users where phone_no_hash = ? and password_hash=? and is_active = true and expired_at >= now()"
 	queryGetUsersByEmail             string = "select user_id, full_name, phone_no, email, acl from auth_users where email = ? and password_hash=? and is_active = true and expired_at >= now()"
@@ -32,6 +33,15 @@ func (di databaseImpl) GetCount(ctx context.Context, userId string) string {
 		logrus.Errorln("error", err.Error)
 	}
 	return merchantId
+}
+
+func (di databaseImpl) GetAppClientKey(ctx context.Context, msgId string, appClientId string) string {
+	var resultAppClientKey string
+	result := di.db.WithContext(ctx).Raw(queryGetAppClientKey, appClientId).Scan(&resultAppClientKey)
+	if result.Error != nil {
+		logrus.Errorln("error db", msgId, appClientId, result.Error)
+	}
+	return resultAppClientKey
 }
 
 // todo here
