@@ -39,18 +39,22 @@ func (auth AuthValidateToken) Execute(c *gin.Context) {
 		jsonRequestBody = sourceUrl
 	}
 
-	if util.IsEmptyObject(msgId) || util.IsEmptyString(msgId) {
+	if util.IsEmptyString(msgId) &&
+		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) &&
+		util.IsEmptyObject(jsonRequestBody) {
+		logrus.Info("invalid request msgid:", msgId, "authorization:", authorization, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, " request body:", jsonRequestBody)
+		unauthorized(c)
+		return
+	} else if util.IsEmptyString(authorization) {
+		logrus.Infoln("invalid request authorization msgid:", msgId, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
+		unauthorized(c)
+		return
+	} else if util.IsEmptyObject(msgId) || util.IsEmptyString(msgId) {
 		logrus.Infoln("invalid request msgid:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl)
 		unauthorized(c)
 		return
 	} else if util.IsEmptyString(signatureInReq) || !auth.isValidSignature(clientId, authorization, signatureInReq, []byte(jsonRequestBody)) {
-		logrus.Infoln("invalid siganture msgId:", msgId, " signature:", signatureInReq, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "jsonRequestBody:", jsonRequestBody)
-		unauthorized(c)
-		return
-	} else if util.IsEmptyString(msgId) && util.IsEmptyString(authorization) &&
-		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) &&
-		util.IsEmptyObject(jsonRequestBody) {
-		logrus.Info("invalid request msgid:", msgId, "authorization:", authorization, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, " request body:", jsonRequestBody)
+		logrus.Infoln("invalid siganture msgId:", msgId, " signature:", signatureInReq, "clientId:", clientId, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, "jsonRequestBody:", jsonRequestBody)
 		unauthorized(c)
 		return
 	}

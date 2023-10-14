@@ -1,4 +1,4 @@
-package handlerTest
+package handlerOCR
 
 import (
 	"sekawan-backend/app/main/enum"
@@ -12,15 +12,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func PostTestHandler(db *repository.Database) handler.HandlerInterface {
-	return &postTestHandler{databaseImpl: *db}
+func OcrHandler(db *repository.Database) handler.HandlerInterface {
+	return &ocrHandler{databaseImpl: *db}
 }
 
-type postTestHandler struct {
+type ocrHandler struct {
 	databaseImpl repository.Database
 }
 
-func (internal postTestHandler) Execute(c *gin.Context) {
+func (internal ocrHandler) Execute(c *gin.Context) {
 
 	msgId := c.GetHeader(util.HEADER_MSG_ID)
 	userId := c.GetHeader(util.HEADER_USER_ID)
@@ -45,24 +45,24 @@ func (internal postTestHandler) Execute(c *gin.Context) {
 	c.JSON(200, response)
 }
 
-func (internal postTestHandler) buildResponse(msgId string, bodyRequest handlerTest.PostTestRequest, userId string, acl string) handlerTest.PostTestResponse {
+func (internal ocrHandler) buildResponse(msgId string, bodyRequest handlerTest.PostTestRequest, userId string, acl string) handlerTest.PostTestResponse {
 	respHeader := handler.Response{ResponseId: msgId, Type: bodyRequest.Type, ResponseCode: enum.SUCCESS, ResponseMessage: enum.SUCCESS.String()}
 	respBody := handlerTest.PostTestBodyResponse{Name: bodyRequest.Body.Name, UserId: userId, Acl: acl}
 	resp := handlerTest.PostTestResponse{Response: respHeader, Body: &respBody}
 	return resp
 }
 
-func (internal postTestHandler) buildResponseFailed(msgId string, responseCode enum.RESP_CODE, msgError string) handlerTest.PostTestResponse {
+func (internal ocrHandler) buildResponseFailed(msgId string, responseCode enum.RESP_CODE, msgError string) handlerTest.PostTestResponse {
 	respHeader := handler.Response{ResponseId: msgId, ResponseCode: responseCode, ResponseMessage: msgError}
 	resp := handlerTest.PostTestResponse{Response: respHeader}
 	return resp
 }
 
-func (internal postTestHandler) decodeJwtToken(msgId string, token string) handlerAuth.JWTToken {
+func (internal ocrHandler) decodeJwtToken(msgId string, token string) handlerAuth.JWTToken {
 	return handlerAuth.DecodeJWTToken(msgId, token)
 }
 
-func (internal postTestHandler) getBodyRequest(msgId string, c *gin.Context) handlerTest.PostTestRequest {
+func (internal ocrHandler) getBodyRequest(msgId string, c *gin.Context) handlerTest.PostTestRequest {
 	var postTestRequest handlerTest.PostTestRequest
 	error := c.ShouldBindJSON(&postTestRequest)
 	if error != nil {

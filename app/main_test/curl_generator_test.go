@@ -77,7 +77,7 @@ func TestCurlRequestGenerateHTTPGet(t *testing.T) {
 
 	requestId := uuid.New().String()
 	url := "/api/v1/test/get?name=test&type=" + enum.TYPE_REQUEST_HTTP_GET_TEST.String()
-	jwtToken := "eyJib2R5Ijp7InVzZXJJZCI6IjhBUlNnWXIxb2ZGUkdKcnhvQWdhIiwiZXhwaXJlZFRzIjoxNjk1OTY4NjMyODAxLCJhY2wiOjB9LCJzaWduYXR1cmUiOiJmYWFiZmI3ZjkwNjkxN2QyNDY5NmIxZWM3MzkzZGJkYzI4NmNjNDRhMmZhZmI3YzY3MTgzZTcxNTNkNDEzZTI3In0="
+	jwtToken := "eyJib2R5Ijp7InVzZXJJZCI6IjhBUlNnWXIxb2ZGUkdKcnhvQWdhIiwiZXhwaXJlZFRzIjoxNjk3Mzg0NTU0OTE4LCJhY2wiOjB9LCJzaWduYXR1cmUiOiIwM2RmZjZjNDNjZGQxMDExZWYwZjkzN2FjNGU1ODdkY2MwMmNjM2EzZDZjZjQ5YTkyMmJhYjNiYWI5NDY4OGIwIn0="
 
 	clientIdServerSide := clientId
 	secretKeySHA256 := clientIdServerSide + clientKeyPattern + jwtToken
