@@ -35,7 +35,7 @@ func (internal postTestHandler) Execute(c *gin.Context) {
 	} else if util.IsEmptyString(bodyRequest.Body.Name) {
 		response = internal.buildResponseFailed(msgId, enum.BAD_REQUEST, "body name is empty")
 	} else if util.IsEmptyString(userId) {
-		response = internal.buildResponseFailed(msgId, enum.BAD_REQUEST, "used id is empty")
+		response = internal.buildResponseFailed(msgId, enum.BAD_REQUEST, "user id is empty")
 	} else if util.IsEmptyString(acl) {
 		response = internal.buildResponseFailed(msgId, enum.BAD_REQUEST, "acl is empty")
 	} else {

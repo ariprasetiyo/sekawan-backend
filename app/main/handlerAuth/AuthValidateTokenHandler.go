@@ -39,8 +39,8 @@ func (auth AuthValidateToken) Execute(c *gin.Context) {
 		jsonRequestBody = sourceUrl
 	}
 
-	if util.IsEmptyString(msgId) &&
-		util.IsEmptyString(httpMethod) && util.IsEmptyString(sourceUrl) &&
+	if util.IsEmptyString(msgId) ||
+		util.IsEmptyString(httpMethod) || util.IsEmptyString(sourceUrl) ||
 		util.IsEmptyObject(jsonRequestBody) {
 		logrus.Info("invalid request msgid:", msgId, "authorization:", authorization, " httpMethod:", httpMethod, " sourceUrl:", sourceUrl, " request body:", jsonRequestBody)
 		unauthorized(c)
